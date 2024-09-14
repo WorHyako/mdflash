@@ -2,217 +2,191 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "markdown_parser.h"
+#include "css_styles.h"
 
-#define MAX_LINE_LENGTH 1024
+#define MAX_LINE_LENGTH 4096
 
-// Load CSS styles for the text view
-static void load_css(GtkTextView *text_view) {
-    // Create a new CSS provider
-    GtkCssProvider *provider = gtk_css_provider_new();
-    
-    // Get the default display and screen
-    GdkDisplay *display = gdk_display_get_default();
-    GdkScreen *screen = gdk_display_get_default_screen(display);
-    
-    // Add the CSS provider to the screen
-    gtk_style_context_add_provider_for_screen(screen, GTK_STYLE_PROVIDER(provider),
-                                              GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    
-    // Define the CSS styles
-    const char *css = "textview { background-color: white; font-size: 16px; }"
-                      "textview text { background-color: white; }"
-                      "textview text:selected { background-color: #3399ff; }"
-                      ".code-block { background-color: #f6f8fa; font-family: monospace; }"
-                      ".heading { background-color: #f0f0f0; }"
-                      ".thin-line { background-color: #f0f0f0; min-height: 1px; }"
-                      ".container-box { background-color: white; }";
-    
-    // Load the CSS data into the provider
-    gtk_css_provider_load_from_data(provider, css, -1, NULL);
-    
-    // Unreference the provider
-    g_object_unref(provider);
+typedef struct {
+    GtkWidget *window;
+    GtkWidget *scrolled_window;
+    GtkWidget *text_view;
+    GtkTextBuffer *buffer;
+    GtkCssProvider *provider;
+} AppWidgets;
+
+static void apply_css(GtkWidget *widget, GtkStyleProvider *provider) {
+    gtk_style_context_add_provider(
+        gtk_widget_get_style_context(widget),
+        provider,
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+    );
+
+    if (GTK_IS_CONTAINER(widget)) {
+        gtk_container_forall(GTK_CONTAINER(widget), (GtkCallback)apply_css, provider);
+    }
 }
 
-// Display the contents of the README.md file in a text view
-static void display_readme(const char *filename) {
-    // Create a new top-level window
-    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    
-    // Set the window title
-    gtk_window_set_title(GTK_WINDOW(window), "README.md Viewer");
-    
-    // Set the default window size
-    gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
+static void load_css(AppWidgets *app) {
+    app->provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(app->provider, github_markdown_css, -1, NULL);
+    apply_css(app->window, GTK_STYLE_PROVIDER(app->provider));
+}
 
-    // Create a new text view
-    GtkWidget *text_view = gtk_text_view_new();
-    
-    // Set the text view to be non-editable
-    gtk_text_view_set_editable(GTK_TEXT_VIEW(text_view), FALSE);
-    
-    // Hide the cursor in the text view
-    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text_view), FALSE);
-    
-    // Set the text wrapping mode to word wrapping
-    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(text_view), GTK_WRAP_WORD);
+static void create_widgets(AppWidgets *app) {
+    app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(app->window), "MDFlash - GitHub Markdown Viewer");
+    gtk_window_set_default_size(GTK_WINDOW(app->window), 800, 600);
 
-    // Get the text buffer associated with the text view
-    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
-    
-    // Get the start iterator of the text buffer
-    GtkTextIter iter;
-    gtk_text_buffer_get_start_iter(buffer, &iter);
+    app->scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_container_set_border_width(GTK_CONTAINER(app->scrolled_window), 10);
 
-    // Open the README.md file for reading
+    app->text_view = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(app->text_view), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(app->text_view), FALSE);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(app->text_view), GTK_WRAP_WORD);
+    gtk_text_view_set_left_margin(GTK_TEXT_VIEW(app->text_view), 20);
+    gtk_text_view_set_right_margin(GTK_TEXT_VIEW(app->text_view), 20);
+
+    app->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(app->text_view));
+
+    gtk_container_add(GTK_CONTAINER(app->scrolled_window), app->text_view);
+    gtk_container_add(GTK_CONTAINER(app->window), app->scrolled_window);
+
+    g_signal_connect(app->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+}
+
+static void apply_tag_to_range(GtkTextBuffer *buffer, const gchar *tag_name, GtkTextIter *start, GtkTextIter *end) {
+    GtkTextTag *tag = gtk_text_tag_table_lookup(gtk_text_buffer_get_tag_table(buffer), tag_name);
+    if (!tag) {
+        if (strcmp(tag_name, "bold") == 0) {
+            tag = gtk_text_buffer_create_tag(buffer, "bold", "weight", PANGO_WEIGHT_BOLD, NULL);
+        } else if (strcmp(tag_name, "italic") == 0) {
+            tag = gtk_text_buffer_create_tag(buffer, "italic", "style", PANGO_STYLE_ITALIC, NULL);
+        } else if (strcmp(tag_name, "code") == 0) {
+            tag = gtk_text_buffer_create_tag(buffer, "code",
+                                             "family", "monospace",
+                                             "background", "#f6f8fa",
+                                             "paragraph-background", "#f6f8fa",
+                                             NULL);
+        } else if (strcmp(tag_name, "heading") == 0) {
+            tag = gtk_text_buffer_create_tag(buffer, "heading",
+                                             "weight", PANGO_WEIGHT_BOLD,
+                                             "size", 18 * PANGO_SCALE,
+                                             NULL);
+        }
+    }
+    if (tag) {
+        gtk_text_buffer_apply_tag(buffer, tag, start, end);
+    }
+}
+
+static void process_inline_formatting(GtkTextBuffer *buffer) {
+    GtkTextIter start, end;
+    gtk_text_buffer_get_bounds(buffer, &start, &end);
+
+    GtkTextIter match_start, match_end;
+    GtkTextSearchFlags flags = GTK_TEXT_SEARCH_TEXT_ONLY;
+
+    // Process bold text
+    while (gtk_text_iter_forward_search(&start, "**", flags, &match_start, &match_end, &end)) {
+        GtkTextIter bold_end;
+        if (gtk_text_iter_forward_search(&match_end, "**", flags, &bold_end, &end, &end)) {
+            gtk_text_buffer_delete(buffer, &bold_end, &end);
+            gtk_text_buffer_delete(buffer, &match_start, &match_end);
+            apply_tag_to_range(buffer, "bold", &match_start, &bold_end);
+            start = bold_end;
+        } else {
+            start = match_end;
+        }
+    }
+
+    // Reset iterators
+    gtk_text_buffer_get_bounds(buffer, &start, &end);
+
+    // Process italic text
+    while (gtk_text_iter_forward_search(&start, "*", flags, &match_start, &match_end, &end)) {
+        GtkTextIter italic_end;
+        if (gtk_text_iter_forward_search(&match_end, "*", flags, &italic_end, &end, &end)) {
+            gtk_text_buffer_delete(buffer, &italic_end, &end);
+            gtk_text_buffer_delete(buffer, &match_start, &match_end);
+            apply_tag_to_range(buffer, "italic", &match_start, &italic_end);
+            start = italic_end;
+        } else {
+            start = match_end;
+        }
+    }
+}
+
+static void insert_markdown(AppWidgets *app, const char *filename) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         fprintf(stderr, "Failed to open file: %s\n", filename);
         exit(1);
     }
 
-    // Initialize variables for reading the file
     char line[MAX_LINE_LENGTH];
-    gboolean in_code_block = FALSE;
+    GtkTextIter iter;
+    gtk_text_buffer_get_start_iter(app->buffer, &iter);
 
-    // Read the file line by line and apply appropriate formatting
+    int in_code_block = 0;
+    GtkTextMark *code_block_start = NULL;
+
     while (fgets(line, sizeof(line), file) != NULL) {
-        // Check if the line starts a code block
-        if (strncmp(line, "```", 3) == 0) {
+        MarkdownElement *element = parse_markdown_line(line);
+
+        if (element->type == MD_CODE_BLOCK) {
             if (!in_code_block) {
-                // Insert a newline character
-                gtk_text_buffer_insert(buffer, &iter, "\n", -1);
-                
-                // Set the code block flag to true
-                in_code_block = TRUE;
+                in_code_block = 1;
+                code_block_start = gtk_text_buffer_create_mark(app->buffer, NULL, &iter, TRUE);
             } else {
-                // Insert a newline character
-                gtk_text_buffer_insert(buffer, &iter, "\n", -1);
-                
-                // Set the code block flag to false
-                in_code_block = FALSE;
+                in_code_block = 0;
+                GtkTextIter code_start, code_end;
+                gtk_text_buffer_get_iter_at_mark(app->buffer, &code_start, code_block_start);
+                code_end = iter;
+                apply_tag_to_range(app->buffer, "code", &code_start, &code_end);
+                gtk_text_buffer_delete_mark(app->buffer, code_block_start);
             }
+        } else if (in_code_block) {
+            gtk_text_buffer_insert(app->buffer, &iter, element->content, -1);
+        } else {
+            GtkTextMark *start_mark = gtk_text_buffer_create_mark(app->buffer, NULL, &iter, TRUE);
+            insert_markdown_element(app->buffer, &iter, element);
+            GtkTextIter start_iter, end_iter;
+            gtk_text_buffer_get_iter_at_mark(app->buffer, &start_iter, start_mark);
+            end_iter = iter;
+
+            if (element->type >= MD_HEADING_1 && element->type <= MD_HEADING_6) {
+                apply_tag_to_range(app->buffer, "heading", &start_iter, &end_iter);
+            }
+
+            gtk_text_buffer_delete_mark(app->buffer, start_mark);
         }
-        // Check if the line is inside a code block
-        else if (in_code_block) {
-            // Create a tag for code block formatting
-            GtkTextTag *tag = gtk_text_buffer_create_tag(buffer, NULL,
-                                                         "background", "#f6f8fa",
-                                                         "family", "monospace",
-                                                         NULL);
-            
-            // Insert the line with the code block tag
-            gtk_text_buffer_insert_with_tags(buffer, &iter, line, -1, tag, NULL);
-        }
-        // Check if the line starts with "# " (h1 heading)
-        else if (strncmp(line, "# ", 2) == 0) {
-            // Create a tag for h1 heading formatting
-            GtkTextTag *tag = gtk_text_buffer_create_tag(buffer, NULL,
-                                                         "weight", PANGO_WEIGHT_BOLD,
-                                                         "size", 22 * PANGO_SCALE,
-                                                         NULL);
-            
-            // Insert the line with the h1 heading tag
-            gtk_text_buffer_insert_with_tags(buffer, &iter, line + 2, -1, tag, NULL);
-            
-            // Insert a newline character
-            gtk_text_buffer_insert(buffer, &iter, "", -1);
-        }
-        // Check if the line starts with "## " (h2 heading)
-        else if (strncmp(line, "## ", 3) == 0) {
-            // Create a tag for h2 heading formatting
-            GtkTextTag *tag = gtk_text_buffer_create_tag(buffer, NULL,
-                                                         "weight", PANGO_WEIGHT_BOLD,
-                                                         "size", 16 * PANGO_SCALE,
-                                                         NULL);
-            
-            // Insert the line with the h2 heading tag
-            gtk_text_buffer_insert_with_tags(buffer, &iter, line + 3, -1, tag, NULL);
-            
-            // Insert a newline character
-            gtk_text_buffer_insert(buffer, &iter, "", -1);
-            
-            // Create a tag for a thin line
-            GtkTextTag *line_tag = gtk_text_buffer_create_tag(buffer, NULL,
-                                                              "background", "#f0f0f0",
-                                                              "paragraph-background", "#f0f0f0",
-                                                              "size", 1 * PANGO_SCALE,
-                                                              NULL);
-            
-            // Insert a newline character with the thin line tag
-            gtk_text_buffer_insert_with_tags(buffer, &iter, "\n", -1, line_tag, NULL);
-        }
-        // Check if the line starts with "### " (h3 heading)
-        else if (strncmp(line, "### ", 4) == 0) {
-            // Create a tag for h3 heading formatting
-            GtkTextTag *tag = gtk_text_buffer_create_tag(buffer, NULL,
-                                                         "weight", PANGO_WEIGHT_BOLD,
-                                                         "size", 14 * PANGO_SCALE,
-                                                         NULL);
-            
-            // Insert the line with the h3 heading tag
-            gtk_text_buffer_insert_with_tags(buffer, &iter, line + 4, -1, tag, NULL);
-        }
-        // For all other lines
-        else {
-            // Insert the line without any formatting
-            gtk_text_buffer_insert(buffer, &iter, line, -1);
-        }
+
+        free_markdown_element(element);
     }
 
-    // Close the file
     fclose(file);
 
-    // Create a new scrolled window
-    GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
-    
-    // Add the text view to the scrolled window
-    gtk_container_add(GTK_CONTAINER(scrolled_window), text_view);
-
-    // Create a new box container to hold the scrolled window
-    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-
-    // Add padding to the box container
-    gtk_container_set_border_width(GTK_CONTAINER(box), 40);
-
-    // Set the border width of the scrolled window
-    gtk_container_set_border_width(GTK_CONTAINER(scrolled_window), 10);
-
-    // Add a CSS class to the box container
-    GtkStyleContext *context = gtk_widget_get_style_context(box);
-    gtk_style_context_add_class(context, "container-box");
-
-    // Add the scrolled window to the box container
-    gtk_box_pack_start(GTK_BOX(box), scrolled_window, TRUE, TRUE, 0);
-    
-    // Add the box container to the main window
-    gtk_container_add(GTK_CONTAINER(window), box);
-
-    // Load the CSS styles for the text view
-    load_css(GTK_TEXT_VIEW(text_view));
-
-    // Connect the "destroy" signal to the main loop quit function
-    g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-    
-    // Show all widgets in the window
-    gtk_widget_show_all(window);
-    
-    // Run the main loop
-    gtk_main();
+    // Process inline formatting after all text has been inserted
+    process_inline_formatting(app->buffer);
 }
 
 int main(int argc, char *argv[]) {
-    // Check if the correct number of arguments is provided
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <README.md>\n", argv[0]);
         return 1;
     }
 
-    // Initialize GTK
     gtk_init(&argc, &argv);
-    
-    // Display the README.md file
-    display_readme(argv[1]);
+
+    AppWidgets app;
+    create_widgets(&app);
+    load_css(&app);
+    insert_markdown(&app, argv[1]);
+
+    gtk_widget_show_all(app.window);
+    gtk_main();
 
     return 0;
 }
