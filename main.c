@@ -1,5 +1,16 @@
 #include <gtk/gtk.h>
 #include <stdio.h>
+#include <pango/pango.h>
+
+static void set_font_with_emoji(GtkWidget *widget) {
+    PangoFontDescription *font_desc = pango_font_description_new();
+    pango_font_description_set_family(font_desc, "Sans");
+    pango_font_description_set_size(font_desc, 12 * PANGO_SCALE);
+
+    gtk_widget_override_font(widget, font_desc);
+
+    pango_font_description_free(font_desc);
+}
 
 static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window;
@@ -11,20 +22,19 @@ static void activate(GtkApplication *app, gpointer user_data) {
     FILE *file;
     const char *filename = user_data;
 
-    // Создаем главное окно
     window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "Просмотр текстового файла");
     gtk_window_set_default_size(GTK_WINDOW(window), 400, 300);
 
-    // Создаем виджет для прокрутки
     scrolled_window = gtk_scrolled_window_new(NULL, NULL);
     gtk_container_add(GTK_CONTAINER(window), scrolled_window);
 
-    // Создаем текстовое поле
     text_view = gtk_text_view_new();
     gtk_container_add(GTK_CONTAINER(scrolled_window), text_view);
 
-    // Устанавливаем белый фон
+    // Устанавливаем шрифт с поддержкой эмодзи
+    set_font_with_emoji(text_view);
+
     GtkCssProvider *provider = gtk_css_provider_new();
     gtk_css_provider_load_from_data(provider,
         "textview { background-color: white; }", -1, NULL);
@@ -33,7 +43,6 @@ static void activate(GtkApplication *app, gpointer user_data) {
         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     g_object_unref(provider);
 
-    // Читаем содержимое файла
     file = fopen(filename, "rb");
     if (file) {
         fseek(file, 0, SEEK_END);
@@ -46,7 +55,6 @@ static void activate(GtkApplication *app, gpointer user_data) {
         fclose(file);
     }
 
-    // Устанавливаем текст в буфер
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_view));
     if (content) {
         gtk_text_buffer_set_text(buffer, content, length);
@@ -61,18 +69,14 @@ static void activate(GtkApplication *app, gpointer user_data) {
 static int command_line(GtkApplication *app, GApplicationCommandLine *cmdline, gpointer user_data) {
     gchar **argv;
     gint argc;
-
     argv = g_application_command_line_get_arguments(cmdline, &argc);
-
     if (argc != 2) {
         g_print("Использование: %s <имя_файла>\n", argv[0]);
         g_strfreev(argv);
         return 1;
     }
-
     g_application_activate(G_APPLICATION(app));
     activate(app, argv[1]);
-
     g_strfreev(argv);
     return 0;
 }
@@ -80,11 +84,9 @@ static int command_line(GtkApplication *app, GApplicationCommandLine *cmdline, g
 int main(int argc, char **argv) {
     GtkApplication *app;
     int status;
-
     app = gtk_application_new("org.example.textviewer", G_APPLICATION_HANDLES_COMMAND_LINE);
     g_signal_connect(app, "command-line", G_CALLBACK(command_line), NULL);
     status = g_application_run(G_APPLICATION(app), argc, argv);
     g_object_unref(app);
-
     return status;
 }
