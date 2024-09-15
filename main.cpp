@@ -30,22 +30,17 @@ public:
     }
 
     void openFile(const QString &fileName) {
-        if (!fileName.isEmpty()) {
-            QFile file(fileName);
-            if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                QTextStream in(&file);
-                in.setCodec("UTF-8");
-                QString content;
-                while (!in.atEnd()) {
-                    QString line = in.readLine();
-                    content += MarkdownProcessor::processLine(line);
-                }
-                textEdit->setHtml(content);
-                file.close();
-            }
+    if (!fileName.isEmpty()) {
+        QFile file(fileName);
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&file);
+            in.setCodec("UTF-8");
+            QString content = in.readAll();
+            textEdit->setHtml(MarkdownProcessor::processContent(content));
+            file.close();
         }
     }
-
+}
 
 
 private:
