@@ -7,24 +7,25 @@
 #include <QFont>
 #include <QFile>
 #include <QTextStream>
+#include "markdown_processor.h"
 
-class TextViewer : public QMainWindow {
+class MarkdownViewer : public QMainWindow {
 public:
-    TextViewer() {
-        setWindowTitle("Текстовый просмотрщик");
-
+    MarkdownViewer() {
+        setWindowTitle("mdflash - Markdown Viewer");
+        
         QWidget *centralWidget = new QWidget(this);
         setCentralWidget(centralWidget);
-
+        
         QVBoxLayout *layout = new QVBoxLayout(centralWidget);
-
+        
         textEdit = new QTextEdit(this);
         textEdit->setReadOnly(true);
         textEdit->setFont(QFont("Arial", 12));
         layout->addWidget(textEdit);
-
+        
         createMenus();
-
+        
         resize(800, 600);
     }
 
@@ -34,27 +35,34 @@ public:
             if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 QTextStream in(&file);
                 in.setCodec("UTF-8");
-                textEdit->setPlainText(in.readAll());
+                QString content;
+                while (!in.atEnd()) {
+                    QString line = in.readLine();
+                    content += MarkdownProcessor::processLine(line);
+                }
+                textEdit->setHtml(content);
                 file.close();
             }
         }
     }
 
+
+
 private:
     void createMenus() {
-        QMenu *fileMenu = menuBar()->addMenu("Файл");
+        QMenu *fileMenu = menuBar()->addMenu("File");
 
-        QAction *openAction = new QAction("Открыть", this);
-        connect(openAction, &QAction::triggered, this, &TextViewer::openFileDialog);
+        QAction *openAction = new QAction("Open", this);
+        connect(openAction, &QAction::triggered, this, &MarkdownViewer::openFileDialog);
         fileMenu->addAction(openAction);
 
-        QAction *exitAction = new QAction("Выход", this);
+        QAction *exitAction = new QAction("Exit", this);
         connect(exitAction, &QAction::triggered, this, &QWidget::close);
         fileMenu->addAction(exitAction);
     }
 
     void openFileDialog() {
-        QString fileName = QFileDialog::getOpenFileName(this, "Открыть файл", "", "Текстовые файлы (*.txt);;Все файлы (*)");
+        QString fileName = QFileDialog::getOpenFileName(this, "Open Markdown File", "", "Markdown Files (*.md);;All Files (*)");
         openFile(fileName);
     }
 
@@ -63,7 +71,7 @@ private:
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-    TextViewer viewer;
+    MarkdownViewer viewer;
     viewer.show();
 
     if (argc > 1) {
