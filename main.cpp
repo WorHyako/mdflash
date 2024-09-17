@@ -26,23 +26,24 @@ public:
         // Create and set up the text edit for displaying markdown content
         textEdit = new QTextEdit(this);
         textEdit->setReadOnly(true);
-        textEdit->setFont(QFont("Arial", 12));
+        textEdit->setFont(QFont("Arial", 20));  // Increased font size to 20
         textEdit->setFrameStyle(QFrame::NoFrame);
         textEdit->setStyleSheet(
             "QTextEdit { "
             "   background-color: white; "
             "   color: #24292e; "
+            "   font-size: 20px; "  // Added explicit font-size in stylesheet
             "}"
             "QScrollBar:vertical {"
             "   border: none;"
             "   background: #f0f0f0;"
-            "   width: 8px;"
+            "   width: 12px;"  // Increased scrollbar width for better usability with larger font
             "   margin: 0px 0px 0px 0px;"
             "}"
             "QScrollBar::handle:vertical {"
             "   background: #808080;"
-            "   min-height: 20px;"
-            "   border-radius: 4px;"
+            "   min-height: 30px;"  // Increased minimum height of scrollbar handle
+            "   border-radius: 6px;"
             "}"
             "QScrollBar::add-line:vertical {"
             "   height: 0px;"

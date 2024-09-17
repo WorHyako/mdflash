@@ -15,6 +15,7 @@ public:
     static QString processItalicText(const QString& text);
     static QString processNumberedList(const QStringList& items);
     static QString processInlineCode(const QString& text);
+    static QString processGitHubLinks(const QString& text);
 };
 
 #endif // MARKDOWN_PROCESSOR_H

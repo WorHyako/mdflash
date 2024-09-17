@@ -4,21 +4,22 @@
 QString MarkdownProcessor::processHeader(const QString& line) {
     if (line.startsWith("# ")) {
         QString content = line.mid(2).trimmed();
-        return QString("<h1 style='font-size: 2.5em; font-weight: 600; padding-bottom: 0.3em; margin-bottom: 0;'>%1</h1>"
-                       "<hr style='height: 0.25em; padding: 0; margin: 0 0 24px 0; background-color: #d0d7de; border: 0;'>")
+        return QString("<h1 style='font-size: 2em; margin-bottom: 1px; font-weight: 600;'>%1</h1>"
+                       "<hr style='height: 0.25em; padding: 0; margin: 0 0 10px 0; background-color: #e1e4e8; border: 0;'>")
             .arg(content);
     } else if (line.startsWith("## ")) {
         QString content = line.mid(3).trimmed();
-        return QString("<h2 style='font-size: 1.875em; font-weight: 600; padding-bottom: 0.3em; margin-bottom: 0;'>%1</h2>"
-                       "<hr style='height: 0.2em; padding: 0; margin: 0 0 16px 0; background-color: #d0d7de; border: 0;'>")
+        return QString("<h2 style='font-size: 1.5em; margin-bottom: 1px; font-weight: 600;'>%1</h2>"
+                       "<hr style='height: 0.1em; padding: 0; margin: 0 0 10px 0; background-color: #e1e4e8; border: 0;'>")
             .arg(content);
     } else if (line.startsWith("### ")) {
         QString content = line.mid(4).trimmed();
-        return QString("<h3 style='font-size: 1.5625em; font-weight: 600; margin-bottom: 16px;'>%1</h3>")
+        return QString("<h3 style='font-size: 1.25em; margin-bottom: 10px; font-weight: 600;'>%1</h3>")
             .arg(content);
     }
     return line;
 }
+
 
 QString MarkdownProcessor::processContent(const QString& content) {
     QStringList lines = content.split("\n");
@@ -33,12 +34,10 @@ QString MarkdownProcessor::processContent(const QString& content) {
     for (const QString& line : lines) {
         if (line.trimmed().startsWith("```")) {
             if (inCodeBlock) {
-                // End of code block
                 processedContent += processCodeBlock(codeBlockLines);
                 codeBlockLines.clear();
                 inCodeBlock = false;
             } else {
-                // Start of code block
                 if (inList) {
                     processedContent += processList(listItems);
                     listItems.clear();
@@ -54,6 +53,20 @@ QString MarkdownProcessor::processContent(const QString& content) {
             }
         } else if (inCodeBlock) {
             codeBlockLines << line;
+        } else if (line.trimmed().startsWith("- ")) {
+            if (!inList) {
+                inList = true;
+                listItems.clear();
+            }
+            listItems << line.trimmed().mid(2);
+        } else if (QRegularExpression("^\\d+\\.\\s").match(line).hasMatch()) {
+            if (!inNumberedList) {
+                inNumberedList = true;
+                listItems.clear();
+                listNumber = 1;
+            }
+            listItems << line.trimmed().mid(line.indexOf(" ") + 1);
+            listNumber++;
         } else {
             if (inList) {
                 processedContent += processList(listItems);
@@ -69,7 +82,8 @@ QString MarkdownProcessor::processContent(const QString& content) {
             QString processedLine = processLine(line);
             processedLine = processBoldText(processedLine);
             processedLine = processItalicText(processedLine);
-            processedLine = processInlineCode(processedLine); 
+            processedLine = processInlineCode(processedLine);
+            processedLine = processGitHubLinks(processedLine);
             processedContent += processedLine;
         }
     }
@@ -86,15 +100,14 @@ QString MarkdownProcessor::processContent(const QString& content) {
 }
 
 QString MarkdownProcessor::processInlineCode(const QString& text) {
-    QRegularExpression inlineCodeRegex("(`[^`\n]+`)");
+    QRegularExpression inlineCodeRegex("`([^`\n]+)`");
     QString processed = text;
     auto matches = inlineCodeRegex.globalMatch(processed);
     while (matches.hasNext()) {
         auto match = matches.next();
         QString codeText = match.captured(1);
-        codeText = codeText.mid(1, codeText.length() - 2);
-        processed.replace(match.captured(0), 
-            QString("<code style='background-color: #F0F1F2; padding: 0.2em 0.4em; "
+        processed.replace(match.captured(0),
+            QString("<code style='background-color: rgba(27,31,35,0.05); padding: 0.2em 0.4em; "
                     "border-radius: 3px; font-family: monospace; font-size: 85%;'>%1</code>")
                 .arg(codeText.toHtmlEscaped()));
     }
@@ -103,19 +116,9 @@ QString MarkdownProcessor::processInlineCode(const QString& text) {
 
 QString MarkdownProcessor::processCodeBlock(const QStringList& lines) {
     QString codeContent = lines.join("\n").toHtmlEscaped();
-    return QString("<pre style='background-color: #F6F8FA; border-radius: 6px; padding: 16px; overflow: auto;'>"
-                   "<code style='font-family: monospace; font-size: 20px;'>%1</code></pre>")
+    return QString("<pre style='background-color: #f6f8fa; border-radius: 6px; padding: 16px; overflow: auto;'>"
+                   "<code style='font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace; font-size: 85%;'>%1</code></pre>")
             .arg(codeContent);
-}
-
-
-QString MarkdownProcessor::processNumberedList(const QStringList& items) {
-    QString listHtml = "<ol style='padding-left: 2em; margin-bottom: 16px; font-size: 20px;'>";
-    for (const QString& item : items) {
-        listHtml += QString("<li style='margin-bottom: 4px;'>%1</li>").arg(item);
-    }
-    listHtml += "</ol>";
-    return listHtml;
 }
 
 QString MarkdownProcessor::processBoldText(const QString& text) {
@@ -144,26 +147,50 @@ QString MarkdownProcessor::processItalicText(const QString& text) {
 
 QString MarkdownProcessor::processLine(const QString& line) {
     QString processedLine = processHeader(line);
-    if (processedLine == line) {
-        if (!line.trimmed().isEmpty()) {
-            return QString("<p style='font-size: 20px; line-height: 1.5;'>%1</p>").arg(line);
-        } else {
-            return processedLine;
-        }
+    if (processedLine == line && !line.trimmed().isEmpty()) {
+        return QString("<p style='margin-top: 0; margin-bottom: 16px;'>%1</p>").arg(line);
     }
     return processedLine;
 }
 
 QString MarkdownProcessor::processList(const QStringList& items) {
-    QString listHtml = "<ul style='padding-left: 2em; margin-bottom: 16px; font-size: 20px;'>";
+    QString listHtml = "<ul style='padding-left: 2em; margin-top: 0; margin-bottom: 16px;'>";
     for (const QString& item : items) {
-        listHtml += QString("<li style='margin-bottom: 4px;'>%1</li>").arg(item);
+        QString processedItem = processBoldText(item);
+        processedItem = processItalicText(processedItem);
+        processedItem = processInlineCode(processedItem);
+        processedItem = processGitHubLinks(processedItem);
+        listHtml += QString("<li style='margin-top: 0.25em;'>%1</li>").arg(processedItem);
     }
     listHtml += "</ul>";
     return listHtml;
 }
 
+QString MarkdownProcessor::processNumberedList(const QStringList& items) {
+    QString listHtml = "<ol style='padding-left: 2em; margin-top: 0; margin-bottom: 16px;'>";
+    for (const QString& item : items) {
+        QString processedItem = processBoldText(item);
+        processedItem = processItalicText(processedItem);
+        processedItem = processInlineCode(processedItem);
+        processedItem = processGitHubLinks(processedItem);
+        listHtml += QString("<li style='margin-top: 0.25em;'>%1</li>").arg(processedItem);
+    }
+    listHtml += "</ol>";
+    return listHtml;
+}
 
-
-
-
+QString MarkdownProcessor::processGitHubLinks(const QString& text) {
+    QRegularExpression linkRegex("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
+    QString processed = text;
+    auto matches = linkRegex.globalMatch(processed);
+    while (matches.hasNext()) {
+        auto match = matches.next();
+        QString linkText = match.captured(1);
+        QString linkUrl = match.captured(2);
+        processed.replace(match.captured(0),
+            QString("<a href='%1' style='color: #0366d6; text-decoration: none;'>"
+                    "<span style='vertical-align: middle;'>%2</span></a>")
+                .arg(linkUrl, linkText));
+    }
+    return processed;
+}
