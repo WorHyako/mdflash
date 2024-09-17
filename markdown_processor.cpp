@@ -31,7 +31,9 @@ QString MarkdownProcessor::processContent(const QString& content) {
     QStringList lines = content.split("\n");
     QString processedContent;
     bool inCodeBlock = false;
+    bool inList = false;
     QStringList codeBlockLines;
+    QStringList listItems;
 
     for (const QString& line : lines) {
         if (line.trimmed().startsWith("```")) {
@@ -42,18 +44,35 @@ QString MarkdownProcessor::processContent(const QString& content) {
                 inCodeBlock = false;
             } else {
                 // Start of code block
+                if (inList) {
+                    processedContent += processList(listItems);
+                    listItems.clear();
+                    inList = false;
+                }
                 inCodeBlock = true;
             }
         } else if (inCodeBlock) {
             codeBlockLines << line;
+        } else if (line.trimmed().startsWith("- ")) {
+            if (!inList) {
+                inList = true;
+            }
+            listItems << line.trimmed().mid(2);
         } else {
+            if (inList) {
+                processedContent += processList(listItems);
+                listItems.clear();
+                inList = false;
+            }
             processedContent += processLine(line);
         }
     }
 
-    // Handle any remaining code block
+    // Handle any remaining code block or list
     if (inCodeBlock) {
         processedContent += processCodeBlock(codeBlockLines);
+    } else if (inList) {
+        processedContent += processList(listItems);
     }
 
     return processedContent;
@@ -66,3 +85,15 @@ QString MarkdownProcessor::processLine(const QString& line) {
     }
     return processedLine;
 }
+
+QString MarkdownProcessor::processList(const QStringList& items) {
+    QString listHtml = "<ul style='padding-left: 2em; margin-bottom: 16px;'>";
+    for (const QString& item : items) {
+        listHtml += QString("<li style='margin-bottom: 4px;'>%1</li>").arg(item);
+    }
+    listHtml += "</ul>";
+    return listHtml;
+}
+
+
+

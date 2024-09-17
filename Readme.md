@@ -1,10 +1,23 @@
-# mdflash - Lightning-Fast Markdown Previews!
-Experience the power of instant Markdown previews, just like GitHub, right in your terminal! ⚡️
+# mdflash - Lightning - Fast Markdown Previews !
+
+Experience the power of instant Markdown previews, just like GitHub, right here, rigth now! ⚡️
+
+***
+> **Note:** This project is currently under active development. Some features may be incomplete or subject to change.
+
+> **Project Goals**
+> - 🔗 Minimal dependencies<br>
+> - 🚀 Maximum performance<br>
+> - 🎯 Closest possible match to GitHub's Markdown rendering<br>
+***
+
 
 ## Description
 mdflash is a lightning-fast utility written in pure C that allows you to preview your Markdown documents with near-zero dependencies! 🚀
 
 Get a taste of GitHub-style Markdown rendering without ever leaving the comfort of your command line! 😎
+
+
 
 ## Features
 🌋 Blazing Fast! ⚡️
@@ -40,13 +53,13 @@ git clone https://github.com/yellow-footed-honeyguide/mdflash.git
 cd mdflash
 mkdir build
 cd build
-meson ..
-ninja
+cmake ..
+make
 ```
 
-Now you can move mdflash to /usr/local/bin/
+Now you can install mdflash to /usr/local/bin/
 ```
-sudo mv ./mdflash /usr/local/bin/
+sudo make install
 ```
 
 
@@ -104,5 +117,3 @@ ex. Sergey Veneckiy
 
 ## License
 This project is licensed under the MIT License
-
-

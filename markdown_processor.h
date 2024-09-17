@@ -10,6 +10,7 @@ public:
     static QString processLine(const QString& line);
     static QString processCodeBlock(const QStringList& lines);
     static QString processContent(const QString& content);
+    static QString processList(const QStringList& items); 
 };
 
 #endif // MARKDOWN_PROCESSOR_H
