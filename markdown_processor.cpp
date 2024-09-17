@@ -20,15 +20,6 @@ QString MarkdownProcessor::processHeader(const QString& line) {
     return line;
 }
 
-QString MarkdownProcessor::processCodeBlock(const QStringList& lines) {
-    QString codeContent = lines.join("\n").toHtmlEscaped();
-    return QString("<pre style='background-color: #f6f8fa; border-radius: 6px; padding: 16px; overflow: auto;'>"
-                   "<code style='font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; "
-                   "font-size: 17px; line-height: 1.45;'>%1</code></pre>")
-            .arg(codeContent);
-}
-
-
 QString MarkdownProcessor::processContent(const QString& content) {
     QStringList lines = content.split("\n");
     QString processedContent;
@@ -63,29 +54,6 @@ QString MarkdownProcessor::processContent(const QString& content) {
             }
         } else if (inCodeBlock) {
             codeBlockLines << line;
-        } else if (line.trimmed().startsWith("- ")) {
-            if (inNumberedList) {
-                processedContent += processNumberedList(listItems);
-                listItems.clear();
-                inNumberedList = false;
-                listNumber = 1;
-            }
-            if (!inList) {
-                inList = true;
-            }
-            listItems << line.trimmed().mid(2);
-        } else if (QRegularExpression("^\\d+\\.\\s").match(line.trimmed()).hasMatch()) {
-            if (inList) {
-                processedContent += processList(listItems);
-                listItems.clear();
-                inList = false;
-            }
-            if (!inNumberedList) {
-                inNumberedList = true;
-                listNumber = 1;
-            }
-            listItems << line.trimmed().replace(QRegularExpression("^\\d+\\.\\s"), "");
-            listNumber++;
         } else {
             if (inList) {
                 processedContent += processList(listItems);
@@ -101,11 +69,11 @@ QString MarkdownProcessor::processContent(const QString& content) {
             QString processedLine = processLine(line);
             processedLine = processBoldText(processedLine);
             processedLine = processItalicText(processedLine);
+            processedLine = processInlineCode(processedLine); 
             processedContent += processedLine;
         }
     }
 
-    // Handle any remaining code block or list
     if (inCodeBlock) {
         processedContent += processCodeBlock(codeBlockLines);
     } else if (inList) {
@@ -116,6 +84,32 @@ QString MarkdownProcessor::processContent(const QString& content) {
 
     return processedContent;
 }
+
+QString MarkdownProcessor::processInlineCode(const QString& text) {
+    QRegularExpression inlineCodeRegex("(`[^`\n]+`)");
+    QString processed = text;
+    auto matches = inlineCodeRegex.globalMatch(processed);
+    while (matches.hasNext()) {
+        auto match = matches.next();
+        QString codeText = match.captured(1);
+        // Удаляем обратные кавычки в начале и конце
+        codeText = codeText.mid(1, codeText.length() - 2);
+        processed.replace(match.captured(0), 
+            QString("<code style='background-color: #e9ecef; padding: 0.2em 0.4em; "
+                    "border-radius: 3px; font-family: monospace; font-size: 85%;'>%1</code>")
+                .arg(codeText.toHtmlEscaped()));
+    }
+    return processed;
+}
+
+QString MarkdownProcessor::processCodeBlock(const QStringList& lines) {
+    QString codeContent = lines.join("\n").toHtmlEscaped();
+    return QString("<pre style='background-color: #f6f8fa; border-radius: 6px; padding: 16px; overflow: auto;'>"
+                   "<code style='font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; "
+                   "font-size: 17px; line-height: 1.45;'>%1</code></pre>")
+            .arg(codeContent);
+}
+
 
 QString MarkdownProcessor::processNumberedList(const QStringList& items) {
     QString listHtml = "<ol style='padding-left: 2em; margin-bottom: 16px; font-size: 20px;'>";
