@@ -40,6 +40,12 @@ Whether you're on Linux, macOS, or Windows, mdflash feels right at home! It's th
 
 Crafted with love and care, mdflash is an open-source marvel that keeps getting better with every contribution! Join the community and make your mark! 🤝
 
+## Dependencies
+
+mdflash relies on the following dependency:
+
+- Qt 5
+
 ## Getting Started
 
 ### Dependencies
@@ -107,13 +113,17 @@ Thank you for considering contributing to this project! Here’s how you can hel
 Thank you for your contributions!
 
 
-## Authors
-Contributors names and contact info
-
-ex. Sergey Veneckiy 
-- **Email**: [your-email@gmail.com](mailto:your-email@gmail.com)
-- **Telegram**: [@your-telegram-handle](https://t.me/your-telegram-handle)
-
+## Author
+**Sergey Veneckiy**
+- Email: s.venetsky@gmail.com
+- GitHub: [@yellow-footed-honeyguide](https://github.com/yellow-footed-honeyguide)
 
 ## License
-This project is licensed under the MIT License
+This project is licensed under the MIT License.
+
+mdflash uses the Qt framework, which is available under various licenses including GPL and LGPL. For more information about Qt licensing, please visit the Qt Licensing page.
+
+## Qt Attribution
+This software uses the Qt framework (version 5.x) under the LGPL v3 license.
+Qt is Copyright (C) 2023 The Qt Company Ltd. and other contributors.
+For more details, see https://www.qt.io/terms-conditions/
