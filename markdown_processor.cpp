@@ -9,7 +9,8 @@ QString MarkdownProcessor::processHeader(const QString& line) {
             .arg(content);
     } else if (line.startsWith("## ")) {
         QString content = line.mid(3).trimmed();
-        return QString("<h2 style='font-size: 1.5em; margin-bottom: 1px; font-weight: 600;'>%1</h2>"
+        return QString("<div style='margin-top: 1.5em;'></div>"  // Added extra space before level 2 headers
+                       "<h2 style='font-size: 1.5em; margin-bottom: 1px; font-weight: 600;'>%1</h2>"
                        "<hr style='height: 0.1em; padding: 0; margin: 0 0 10px 0; background-color: #e1e4e8; border: 0;'>")
             .arg(content);
     } else if (line.startsWith("### ")) {
@@ -19,6 +20,7 @@ QString MarkdownProcessor::processHeader(const QString& line) {
     }
     return line;
 }
+
 
 
 QString MarkdownProcessor::processContent(const QString& content) {
