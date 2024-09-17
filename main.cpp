@@ -34,12 +34,12 @@ public:
             "}"
             "QScrollBar:vertical {"
             "   border: none;"
-            "   background: #f0f0f0;"
-            "   width: 8px;"  // Reduced scrollbar width
+            "   background: #F6F8FA;"
+            "   width: 5px;"  // Reduced scrollbar width
             "   margin: 0px 0px 0px 0px;"
             "}"
             "QScrollBar::handle:vertical {"
-            "   background: #c0c0c0;"  // Lighter color for better visibility
+            "   background: #e5eaef;"  // Lighter color for better visibility
             "   min-height: 20px;"
             "   border-radius: 4px;"
             "}"
