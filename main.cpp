@@ -17,38 +17,33 @@ public:
     MarkdownViewer() : currentFileName("") {
         setWindowTitle("mdflash - Markdown Viewer");
 
-        // Set up the central widget and main layout
         QWidget *centralWidget = new QWidget(this);
         setCentralWidget(centralWidget);
         QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
-        mainLayout->setContentsMargins(20, 20, 20, 20);  // Add white margins around the content
+        mainLayout->setContentsMargins(30, 30, 30, 30);  // Increased margins around the content
 
-        // Create and set up the text edit for displaying markdown content
         textEdit = new QTextEdit(this);
         textEdit->setReadOnly(true);
-        textEdit->setFont(QFont("Arial", 20));  // Increased font size to 20
+        textEdit->setFont(QFont("Arial", 20));
         textEdit->setFrameStyle(QFrame::NoFrame);
         textEdit->setStyleSheet(
             "QTextEdit { "
             "   background-color: white; "
             "   color: #24292e; "
-            "   font-size: 20px; "  // Added explicit font-size in stylesheet
+            "   font-size: 20px; "
             "}"
             "QScrollBar:vertical {"
             "   border: none;"
             "   background: #f0f0f0;"
-            "   width: 12px;"  // Increased scrollbar width for better usability with larger font
+            "   width: 8px;"  // Reduced scrollbar width
             "   margin: 0px 0px 0px 0px;"
             "}"
             "QScrollBar::handle:vertical {"
-            "   background: #808080;"
-            "   min-height: 30px;"  // Increased minimum height of scrollbar handle
-            "   border-radius: 6px;"
+            "   background: #c0c0c0;"  // Lighter color for better visibility
+            "   min-height: 20px;"
+            "   border-radius: 4px;"
             "}"
-            "QScrollBar::add-line:vertical {"
-            "   height: 0px;"
-            "}"
-            "QScrollBar::sub-line:vertical {"
+            "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
             "   height: 0px;"
             "}"
             "QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {"
@@ -61,7 +56,7 @@ public:
         mainLayout->addWidget(textEdit);
         createMenus();
         setupStyle();
-        resize(1920, 1080);  // Set initial window size
+        resize(1920, 1080);
     }
 
     // Open and display the content of a markdown file
