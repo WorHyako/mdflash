@@ -34,8 +34,10 @@ QString MarkdownProcessor::processContent(const QString& content) {
     QString processedContent;
     bool inCodeBlock = false;
     bool inList = false;
+    bool inNumberedList = false;
     QStringList codeBlockLines;
     QStringList listItems;
+    int listNumber = 1;
 
     for (const QString& line : lines) {
         if (line.trimmed().startsWith("```")) {
@@ -51,20 +53,50 @@ QString MarkdownProcessor::processContent(const QString& content) {
                     listItems.clear();
                     inList = false;
                 }
+                if (inNumberedList) {
+                    processedContent += processNumberedList(listItems);
+                    listItems.clear();
+                    inNumberedList = false;
+                    listNumber = 1;
+                }
                 inCodeBlock = true;
             }
         } else if (inCodeBlock) {
             codeBlockLines << line;
         } else if (line.trimmed().startsWith("- ")) {
+            if (inNumberedList) {
+                processedContent += processNumberedList(listItems);
+                listItems.clear();
+                inNumberedList = false;
+                listNumber = 1;
+            }
             if (!inList) {
                 inList = true;
             }
             listItems << line.trimmed().mid(2);
+        } else if (QRegularExpression("^\\d+\\.\\s").match(line.trimmed()).hasMatch()) {
+            if (inList) {
+                processedContent += processList(listItems);
+                listItems.clear();
+                inList = false;
+            }
+            if (!inNumberedList) {
+                inNumberedList = true;
+                listNumber = 1;
+            }
+            listItems << line.trimmed().replace(QRegularExpression("^\\d+\\.\\s"), "");
+            listNumber++;
         } else {
             if (inList) {
                 processedContent += processList(listItems);
                 listItems.clear();
                 inList = false;
+            }
+            if (inNumberedList) {
+                processedContent += processNumberedList(listItems);
+                listItems.clear();
+                inNumberedList = false;
+                listNumber = 1;
             }
             QString processedLine = processLine(line);
             processedLine = processBoldText(processedLine);
@@ -78,9 +110,20 @@ QString MarkdownProcessor::processContent(const QString& content) {
         processedContent += processCodeBlock(codeBlockLines);
     } else if (inList) {
         processedContent += processList(listItems);
+    } else if (inNumberedList) {
+        processedContent += processNumberedList(listItems);
     }
 
     return processedContent;
+}
+
+QString MarkdownProcessor::processNumberedList(const QStringList& items) {
+    QString listHtml = "<ol style='padding-left: 2em; margin-bottom: 16px; font-size: 20px;'>";
+    for (const QString& item : items) {
+        listHtml += QString("<li style='margin-bottom: 4px;'>%1</li>").arg(item);
+    }
+    listHtml += "</ol>";
+    return listHtml;
 }
 
 QString MarkdownProcessor::processBoldText(const QString& text) {

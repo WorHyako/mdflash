@@ -13,6 +13,7 @@ public:
     static QString processList(const QStringList& items); 
     static QString processBoldText(const QString& text);
     static QString processItalicText(const QString& text);
+    static QString processNumberedList(const QStringList& items);
 };
 
 #endif // MARKDOWN_PROCESSOR_H
