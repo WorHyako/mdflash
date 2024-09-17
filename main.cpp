@@ -28,13 +28,39 @@ public:
         textEdit->setReadOnly(true);
         textEdit->setFont(QFont("Arial", 12));
         textEdit->setFrameStyle(QFrame::NoFrame);
-        textEdit->setStyleSheet("QTextEdit { background-color: white; color: #24292e; }");
+        textEdit->setStyleSheet(
+            "QTextEdit { "
+            "   background-color: white; "
+            "   color: #24292e; "
+            "}"
+            "QScrollBar:vertical {"
+            "   border: none;"
+            "   background: #f0f0f0;"
+            "   width: 8px;"
+            "   margin: 0px 0px 0px 0px;"
+            "}"
+            "QScrollBar::handle:vertical {"
+            "   background: #808080;"
+            "   min-height: 20px;"
+            "   border-radius: 4px;"
+            "}"
+            "QScrollBar::add-line:vertical {"
+            "   height: 0px;"
+            "}"
+            "QScrollBar::sub-line:vertical {"
+            "   height: 0px;"
+            "}"
+            "QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {"
+            "   background: none;"
+            "}"
+            "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
+            "   background: none;"
+            "}"
+        );
         mainLayout->addWidget(textEdit);
-
         createMenus();
         setupStyle();
-
-        resize(1000, 800);  // Set initial window size
+        resize(1920, 1080);  // Set initial window size
     }
 
     // Open and display the content of a markdown file
