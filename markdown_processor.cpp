@@ -1,4 +1,5 @@
 #include "markdown_processor.h"
+#include <QRegularExpression>
 
 QString MarkdownProcessor::processHeader(const QString& line) {
     if (line.startsWith("# ")) {
@@ -26,6 +27,7 @@ QString MarkdownProcessor::processCodeBlock(const QStringList& lines) {
                    "font-size: 17px; line-height: 1.45;'>%1</code></pre>")
             .arg(codeContent);
 }
+
 
 QString MarkdownProcessor::processContent(const QString& content) {
     QStringList lines = content.split("\n");
@@ -64,7 +66,10 @@ QString MarkdownProcessor::processContent(const QString& content) {
                 listItems.clear();
                 inList = false;
             }
-            processedContent += processLine(line);
+            QString processedLine = processLine(line);
+            processedLine = processBoldText(processedLine);
+            processedLine = processItalicText(processedLine);
+            processedContent += processedLine;
         }
     }
 
@@ -76,6 +81,30 @@ QString MarkdownProcessor::processContent(const QString& content) {
     }
 
     return processedContent;
+}
+
+QString MarkdownProcessor::processBoldText(const QString& text) {
+    QRegularExpression boldRegex("\\*\\*(.*?)\\*\\*");
+    QString processed = text;
+    auto matches = boldRegex.globalMatch(processed);
+    while (matches.hasNext()) {
+        auto match = matches.next();
+        QString boldText = match.captured(1);
+        processed.replace(match.captured(0), QString("<strong style='font-weight: 600;'>%1</strong>").arg(boldText));
+    }
+    return processed;
+}
+
+QString MarkdownProcessor::processItalicText(const QString& text) {
+    QRegularExpression italicRegex("\\*(.*?)\\*");
+    QString processed = text;
+    auto matches = italicRegex.globalMatch(processed);
+    while (matches.hasNext()) {
+        auto match = matches.next();
+        QString italicText = match.captured(1);
+        processed.replace(match.captured(0), QString("<em style='font-style: italic;'>%1</em>").arg(italicText));
+    }
+    return processed;
 }
 
 QString MarkdownProcessor::processLine(const QString& line) {
@@ -98,4 +127,8 @@ QString MarkdownProcessor::processList(const QStringList& items) {
     listHtml += "</ul>";
     return listHtml;
 }
+
+
+
+
 
