@@ -80,10 +80,14 @@ QString MarkdownProcessor::processContent(const QString& content) {
 
 QString MarkdownProcessor::processLine(const QString& line) {
     QString processedLine = processHeader(line);
-    if (processedLine == line) {  // If it's not a header, preserve line breaks
-        return processedLine + "<br>";
+    if (processedLine == line) { 
+        if (!line.trimmed().isEmpty()) {
+            return processedLine + "<br>";
+        } else {
+            return processedLine; 
+        }
     }
-    return processedLine;
+    return processedLine; 
 }
 
 QString MarkdownProcessor::processList(const QStringList& items) {
