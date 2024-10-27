@@ -1,5 +1,8 @@
-#include "markdown_processor.h"
+#include "core/markdown_processor.hpp"
+
 #include <QRegularExpression>
+
+using namespace mdflash::Core;
 
 QString MarkdownProcessor::processHeader(const QString& line) {
     if (line.startsWith("# ")) {
@@ -20,8 +23,6 @@ QString MarkdownProcessor::processHeader(const QString& line) {
     }
     return line;
 }
-
-
 
 QString MarkdownProcessor::processContent(const QString& content) {
     QStringList lines = content.split("\n");
