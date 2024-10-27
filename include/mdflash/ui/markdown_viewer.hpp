@@ -2,7 +2,8 @@
 #define MARKDOWN_VIEWER_HPP
 
 #include <QMainWindow>
-#include <QTextEdit>
+
+class QTextEdit;
 
 namespace mdflash::Ui {
 	/**
