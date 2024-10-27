@@ -62,7 +62,7 @@ QString MarkdownProcessor::processContent(const QString& content) noexcept {
 				listItems.clear();
 			}
 			listItems << line.trimmed().mid(2);
-		} else if (QRegularExpression("^\\d+\\.\\s").match(line).hasMatch()) {
+		} else if (QRegularExpression(R"(^\d+\.\s)").match(line).hasMatch()) {
 			if (!inNumberedList) {
 				inNumberedList = true;
 				listItems.clear();
@@ -125,7 +125,7 @@ QString MarkdownProcessor::processCodeBlock(const QStringList& lines) noexcept {
 }
 
 QString MarkdownProcessor::processBoldText(const QString& text) noexcept {
-	QRegularExpression boldRegex("\\*\\*(.*?)\\*\\*");
+	QRegularExpression boldRegex(R"(\*\*(.*?)\*\*)");
 	QString processed = text;
 	auto matches = boldRegex.globalMatch(processed);
 	while (matches.hasNext()) {
@@ -183,7 +183,7 @@ QString MarkdownProcessor::processNumberedList(const QStringList& items) noexcep
 }
 
 QString MarkdownProcessor::processGitHubLinks(const QString& text) noexcept {
-	QRegularExpression linkRegex("\\[([^\\]]+)\\]\\(([^\\)]+)\\)");
+	QRegularExpression linkRegex(R"(\[([^\]]+)\]\(([^\)]+)\))");
 	QString processed = text;
 	auto matches = linkRegex.globalMatch(processed);
 	while (matches.hasNext()) {
