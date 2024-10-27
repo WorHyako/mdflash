@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 #include <QTextEdit>
-#include <QFileDialog>
 
 namespace mdflash::Ui {
 	/**

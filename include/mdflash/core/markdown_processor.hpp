@@ -13,25 +13,35 @@ namespace mdflash::Core {
 	 */
 	class MarkdownProcessor {
 	public:
-		static QString processHeader(const QString& line);
+		[[nodiscard]]
+		static QString processHeader(const QString& line) noexcept;
 
-		static QString processLine(const QString& line);
+		[[nodiscard]]
+		static QString processLine(const QString& line) noexcept;
 
-		static QString processCodeBlock(const QStringList& lines);
+		[[nodiscard]]
+		static QString processCodeBlock(const QStringList& lines) noexcept;
 
-		static QString processContent(const QString& content);
+		[[nodiscard]]
+		static QString processContent(const QString& content) noexcept;
 
-		static QString processList(const QStringList& items);
+		[[nodiscard]]
+		static QString processList(const QStringList& items) noexcept;
 
-		static QString processBoldText(const QString& text);
+		[[nodiscard]]
+		static QString processBoldText(const QString& text) noexcept;
 
-		static QString processItalicText(const QString& text);
+		[[nodiscard]]
+		static QString processItalicText(const QString& text) noexcept;
 
-		static QString processNumberedList(const QStringList& items);
+		[[nodiscard]]
+		static QString processNumberedList(const QStringList& items) noexcept;
 
-		static QString processInlineCode(const QString& text);
+		[[nodiscard]]
+		static QString processInlineCode(const QString& text) noexcept;
 
-		static QString processGitHubLinks(const QString& text);
+		[[nodiscard]]
+		static QString processGitHubLinks(const QString& text) noexcept;
 	};
 }
 
